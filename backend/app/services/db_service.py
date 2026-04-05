@@ -1,5 +1,6 @@
 from app.database.db import SessionLocal
 from app.database.models import Product
+from app.database.db import Base, engine
 
 def save_products(products):
     db = SessionLocal()
