@@ -1,28 +1,8 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+
 from app.services.mercado_livre import get_products
-from app.services.db_service import save_products
-from app.services.market_intelligence 
-import get_trends, enrich, score
-
-@router.get("/market-analysis")
-def analysis():
-    trends = get_trends()
-    results = []
-
-    for t in trends[:5]:
-        keyword = t["keyword"]
-
-        data = get_products(keyword)
-        enriched = enrich(data[:5])
-        scored = score(enriched)
-
-        results.append({
-            "trend": keyword,
-            "products": scored
-        })
-
-    return results
-
+from app.services.db_service import save_products, save_analysis
+from app.services.market_intelligence import run_market_analysis
 
 router = APIRouter()
 
@@ -30,32 +10,20 @@ router = APIRouter()
 def root():
     return {"message": "API running"}
 
-
-
 @router.get("/products")
 def products():
-    data = get_products("tenis")
-    save_products(data)
-    return data
-
-    Python
-from app.services.market_intelligence import get_trends, enrich, score
+    try:
+        data = get_products("tenis")
+        save_products(data)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/market-analysis")
-def analysis():
-    trends = get_trends()
-    results = []
-
-    for t in trends[:5]:
-        keyword = t["keyword"]
-
-        data = get_products(keyword)
-        enriched = enrich(data[:5])
-        scored = score(enriched)
-
-        results.append({
-            "trend": keyword,
-            "products": scored
-        })
-
-    return results
+def market_analysis():
+    try:
+        results = run_market_analysis()
+        save_analysis(results)
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

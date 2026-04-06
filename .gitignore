@@ -3,9 +3,14 @@
 .env.*
 
 # python
-_pycache_/
+__pycache__/
 *.pyc
 
+.env
+.env.*
+
+backend/runtime/
+*.db
 # node
 node_modules/
 
@@ -14,3 +19,29 @@ node_modules/
 
 # system
 .DS_Store
+
+
+# env
+.env
+.env.*
+
+# python
+__pycache__/
+*.pyc
+venv/
+backend/venv/
+
+# node
+node_modules/
+
+# build
+dist/
+build/
+
+# runtime
+backend/runtime/
+*.db
+
+# os/editor
+.DS_Store
+.vscode/

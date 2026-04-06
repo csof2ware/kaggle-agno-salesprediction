@@ -1,13 +1,13 @@
 from fastapi import FastAPI
 from app.api.routes import router
 
-from app.database.db import engine
-from app.database.models import Base
+from app.database.db import engine, Base
+from app.database import models  # necessário para criar tabelas
 
 app = FastAPI(title="AGNO AI ENGINE")
 
 # cria tabelas no banco
 Base.metadata.create_all(bind=engine)
 
-# rotas
+# registra rotas
 app.include_router(router)
