@@ -35,14 +35,15 @@ Fluxo funcional
 
 O backend autentica na API do Mercado Livre
 Se o access token estiver expirado, renova usando refresh token
-Busca tendências
+Tenta obter tendências reais
+Se tendências falharem, usa fallback por keywords estratégicas
 Busca produtos relacionados
-Enriquece dados dos itens
 Calcula score de oportunidade
+Enriquece dados dos itens
 Salva resultados
 Expõe /market-analysis
+O frontend consome e exibe catálogo + tendências
 
-O frontend consome e exibe catálogo + tendências Autenticação Mercado Livre
 
 O projeto usa o fluxo OAuth do Mercado Livre com:
 
@@ -88,3 +89,27 @@ Uso com Kaggle / Jupyter
     publicação e visibilidade na comunidade Kaggle
 
 A recomendação é usar o notebook como camada de exploração e o backend como camada operacional.
+
+
+
+Estrutura do projeto
+
+
+kaggle-agno-salesprediction/
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   ├── core/
+│   │   ├── database/
+│   │   ├── services/
+│   │   └── main.py
+│   ├── runtime/
+│   └── venv/
+├── frontend/
+│   └── src/
+├── cron/
+├── notebook/
+├── .env
+├── .env.example
+├── .gitignore
+└── README.md

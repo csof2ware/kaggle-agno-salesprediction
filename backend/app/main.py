@@ -1,13 +1,25 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import router
 
-from app.database.db import engine, Base
-from app.database import models  # necessário para criar tabelas
+from app.database.db import engine
+from app.database.models import Base
 
 app = FastAPI(title="AGNO AI ENGINE")
 
-# cria tabelas no banco
+# cria tabelas
 Base.metadata.create_all(bind=engine)
 
-# registra rotas
+# libera frontend local
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(router)

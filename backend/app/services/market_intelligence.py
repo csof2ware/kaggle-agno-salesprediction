@@ -1,33 +1,74 @@
 import requests
-import os
 
-TOKEN = os.getenv("ML_ACCESS_TOKEN")
+from app.services.ml_auth import MercadoLivreAuthService
+
 BASE_URL = "https://api.mercadolibre.com"
+auth_service = MercadoLivreAuthService()
+
+
+def _auth_headers():
+    token = auth_service.get_valid_access_token()
+    return {
+        "Authorization": f"Bearer {token}",
+        "accept": "application/json",
+    }
 
 
 def get_trends():
-    return requests.get(f"{BASE_URL}/trends/MLB").json()
+    try:
+        response = requests.get(
+            f"{BASE_URL}/trends/MLB",
+            headers=_auth_headers(),
+            timeout=30,
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        # garante lista
+        if not isinstance(data, list):
+            return {
+                "error": "Resposta inesperada ao obter tendências",
+                "raw_response": data,
+            }
+
+        return data
+
+    except Exception as e:
+        return {
+            "error": "Falha ao obter tendências",
+            "raw_response": str(e),
+        }
 
 
 def get_item_detail(item_id):
-    return requests.get(f"{BASE_URL}/items/{item_id}").json()
+    response = requests.get(
+        f"{BASE_URL}/items/{item_id}",
+        headers=_auth_headers(),
+        timeout=30,
+    )
+    response.raise_for_status()
+    return response.json()
 
 
 def enrich(products):
     result = []
 
     for p in products:
-        detail = get_item_detail(p["id"])
+        item_id = p.get("id")
+        if not item_id:
+            continue
 
-        price = detail.get("price", 0)
-        sold = detail.get("sold_quantity", 0)
+        detail = get_item_detail(item_id)
+
+        price = detail.get("price", 0) or 0
+        sold = detail.get("sold_quantity", 0) or 0
 
         result.append({
-            "id": p["id"],
-            "title": detail.get("title"),
+            "title": detail.get("title", "Sem título"),
             "price": price,
             "sold": sold,
-            "revenue": price * sold
+            "revenue_estimate": price * sold,
+            "opportunity_score": 0,
         })
 
     return result
@@ -37,36 +78,72 @@ def score(products):
     if not products:
         return []
 
-    avg_price = sum(p["price"] for p in products) / len(products)
+    avg_price = sum(p["price"] for p in products) / len(products) if products else 0
 
     for p in products:
         s = 0
-
         if p["sold"] > 100:
             s += 2
         if p["price"] < avg_price:
             s += 1
-        if p["revenue"] > 10000:
+        if p["revenue_estimate"] > 10000:
             s += 2
+        p["opportunity_score"] = s
 
-        p["score"] = s
-
-    return sorted(products, key=lambda x: x["score"], reverse=True)
+    return sorted(products, key=lambda x: x["opportunity_score"], reverse=True)
 
 
 def run_market_analysis():
     trends = get_trends()
 
-    if not isinstance(trends, list):
+    # 🔥 se vier erro, devolve erro estruturado e não quebra
+    if isinstance(trends, dict) and trends.get("error"):
         return {
-            "error": "Falha ao obter tendências",
-            "raw_response": trends
+            "status": "error",
+            "stage": "get_trends",
+            "message": trends["error"],
+            "details": trends.get("raw_response"),
+            "results": [],
         }
 
-    enriched = enrich(trends[:10])
-    ranked = score(enriched)
+    if not isinstance(trends, list):
+        return {
+            "status": "error",
+            "stage": "get_trends",
+            "message": "Formato inesperado de tendências",
+            "details": trends,
+            "results": [],
+        }
+
+    results = []
+
+    for t in trends[:5]:
+        if not isinstance(t, dict):
+            continue
+
+        keyword = t.get("keyword", "")
+        if not keyword:
+            continue
+
+        response = requests.get(
+            f"{BASE_URL}/sites/MLB/search",
+            headers=_auth_headers(),
+            params={"q": keyword},
+            timeout=30,
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        items = data.get("results", [])[:5]
+        enriched = enrich(items)
+        scored = score(enriched)
+
+        results.append({
+            "trend": keyword,
+            "products": scored
+        })
 
     return {
-        "total_products": len(ranked),
-        "products": ranked
+        "status": "success",
+        "results": results
     }

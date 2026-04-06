@@ -15,15 +15,21 @@ def products():
     try:
         data = get_products("tenis")
         save_products(data)
-        return data
+        return {
+            "status": "success",
+            "results": data
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/market-analysis")
 def market_analysis():
     try:
-        results = run_market_analysis()
-        save_analysis(results)
-        return results
+        payload = run_market_analysis()
+
+        if payload.get("status") == "success":
+            save_analysis(payload.get("results", []))
+
+        return payload
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
