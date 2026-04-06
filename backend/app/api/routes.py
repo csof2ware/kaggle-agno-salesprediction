@@ -6,9 +6,11 @@ from app.services.market_intelligence import run_market_analysis
 
 router = APIRouter()
 
+
 @router.get("/")
 def root():
     return {"message": "API running"}
+
 
 @router.get("/products")
 def products():
@@ -21,6 +23,7 @@ def products():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/market-analysis")
 def market_analysis():

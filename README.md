@@ -113,3 +113,77 @@ kaggle-agno-salesprediction/
 ├── .env.example
 ├── .gitignore
 └── README.md
+
+
+CURLs  fluxo Oauth Mercado Livre
+
+O fluxo oficial do Mercado Livre usa authorization code para obter token,
+ POST /oauth/token para trocar o code por token, e o access_token deve ser enviado
+no header Authorization: Bearer .... 
+O access_token expira em cerca de 6 horas e o refresh_token é de uso único, 
+sendo necessário guardar sempre o último retornado. �
+
+Mercado Livre Developers
+
+1. URL de autorização no navegador
+Esse passo é no browser, não no curl:
+
+https://auth.mercadolivre.com.br/authorization?response_type=code&client_id=SEU_APP_ID&redirect_uri=SUA_REDIRECT_URI
+
+Depois do login/consentimento, você recebe algo como:
+
+https://sua-redirect-uri?code=SEU_AUTH_CODE
+O redirect_uri precisa bater exatamente com o configurado no app. 
+
+
+2. Trocar code por access_token
+
+curl -X POST "https://api.mercadolibre.com/oauth/token" \
+  -H "accept: application/json" \
+  -H "content-type: application/x-www-form-urlencoded" \
+  -d "grant_type=authorization_code" \
+  -d "client_id=SEU_APP_ID" \
+  -d "client_secret=SEU_CLIENT_SECRET" \
+  -d "code=SEU_AUTH_CODE" \
+  -d "redirect_uri=SUA_REDIRECT_URI"
+
+3. Renovar token com refresh_token
+
+curl -X POST "https://api.mercadolibre.com/oauth/token" \
+  -H "accept: application/json" \
+  -H "content-type: application/x-www-form-urlencoded" \
+  -d "grant_type=refresh_token" \
+  -d "client_id=SEU_APP_ID" \
+  -d "client_secret=SEU_CLIENT_SECRET" \
+  -d "refresh_token=SEU_REFRESH_TOKEN"
+
+Guarde o novo refresh_token retornado. O Mercado Livre informa que só o último é válido e ele é de uso único. �
+
+
+4. Teste simples de autenticação
+
+curl -X GET "https://api.mercadolibre.com/users/me" \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN" \
+  -H "accept: application/json"
+
+Esse padrão de enviar o token no header é o recomendado na documentação oficial.
+
+
+5. Endpoint que estamos usando no projeto: busca por keyword
+
+curl -X GET "https://api.mercadolibre.com/sites/MLB/search?q=ferramentas" \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN" \
+  -H "accept: application/json"
+6. Detalhe do item
+
+curl -X GET "https://api.mercadolibre.com/items/ITEM_ID_AQUI" \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN" \
+  -H "accept: application/json"
+
+7. Trends do Mercado Livre, quando disponíveis no seu fluxo
+
+curl -X GET "https://api.mercadolibre.com/trends/MLB" \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN" \
+  -H "accept: application/json"
+
+Essa rota está falhando e por isso implementamos o fallback, na proxima evolucao vamos substituir a logica com AGNO Agent.
